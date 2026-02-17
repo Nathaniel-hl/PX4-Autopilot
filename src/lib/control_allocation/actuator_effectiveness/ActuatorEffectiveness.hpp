@@ -205,7 +205,24 @@ public:
 	/**
 	 * Get a bitmask of motors to be stopped
 	 */
-	virtual ActuatorBitmask getStoppedMotors() const { return _stopped_motors_mask; }
+	ActuatorBitmask getStoppedMotors() const
+	{
+		// Motors can be stopped (here) for two reasons. They can
+		// additionally be stopped in the ControlAllocator, due to motor
+		// failure.
+
+		//  a) they are turned off because they are generally not used in the given flight phase.
+		uint32_t stopped_motors_mask = _stopped_motors_mask_due_to_flight_phase;
+
+		//  b) they are stopped because the thrust setpoint in a given direction is NaN
+		if (_forwards_motors_stopped_by_thrust) { stopped_motors_mask |= _forwards_motors_mask; }
+
+		if (_upwards_motors_stopped_by_thrust) { stopped_motors_mask |= _upwards_motors_mask; }
+
+		if (_sideways_motors_stopped_by_thrust) { stopped_motors_mask |= _sideways_motors_mask; }
+
+		return stopped_motors_mask;
+	}
 
 	/**
 	 * Fill in the unallocated torque and thrust, customized by effectiveness type.
@@ -213,8 +230,33 @@ public:
 	 */
 	virtual void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) {}
 
+	/**
+	 * Record which components of the thrust setpoint are NaN, so that motors in that direction are stopped.
+	 *
+	 * @param thrust_sp The thrust setpoint as received by the allocator (instance zero - multicopter only)
+	 */
+	virtual void stopMotorsBasedOnThrustSetpoint(const matrix::Vector3f &thrust_sp)
+	{
+		_forwards_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(0));
+		_sideways_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(1));
+		_upwards_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(2));
+	}
+
 protected:
+
+	// The vehicle effectiveness classes should set these to
+	// ActuatorEffectivenessRotors::get{Upwards,Forwards,Sideways}Motors()
+	// They can alternatively be set to zero to completely disable stopping motors based on NaN thrust
+
+	ActuatorBitmask _upwards_motors_mask{};
+	ActuatorBitmask _forwards_motors_mask{};
+	ActuatorBitmask _sideways_motors_mask{};
+
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
-	ActuatorBitmask _stopped_motors_mask{0};
+	ActuatorBitmask _stopped_motors_mask_due_to_flight_phase{};
+
+	bool _forwards_motors_stopped_by_thrust{false};
+	bool _upwards_motors_stopped_by_thrust{false};
+	bool _sideways_motors_stopped_by_thrust{false};
 
 };
