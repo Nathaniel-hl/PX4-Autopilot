@@ -204,6 +204,14 @@ void Standard::update_transition_state()
 			roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 		}
 
+		if (!PX4_ISFINITE(_pusher_throttle)) {
+
+			// In MC, the pusher throttle is given by pusher assist. Because there we map low thrust values
+			// to NaN to completely turn off the motor, it can be NaN when starting the front transition.
+			// For the transition and particularly the slew rate below, we consider NaN equivalent to zero.
+			_pusher_throttle = 0.0f;
+		}
+
 		if (_param_vt_psher_slew.get() <= FLT_EPSILON) {
 			// just set the final target throttle value
 			_pusher_throttle = _param_vt_f_trans_thr.get();
