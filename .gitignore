@@ -112,3 +112,8 @@ keys/
 
 # metadata
 _emscripten_sdk/
+/myTest
+/.vs
+/out
+PX4_ArduPilot_Controller_Adaptation.md
+myTest.zip
