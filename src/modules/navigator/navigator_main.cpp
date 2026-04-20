@@ -990,7 +990,7 @@ void Navigator::geofence_breach_check()
 			current_latitude = _gps_pos.latitude_deg;
 			current_longitude = _gps_pos.longitude_deg;
 			current_altitude = _gps_pos.altitude_msl_m;
-			position_valid = _gps_pos.timestamp > 0;
+			position_valid = _global_pos.timestamp > 0;
 		}
 
 		if (!position_valid) {
